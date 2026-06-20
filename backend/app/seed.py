@@ -14,7 +14,8 @@ from .models import (
     TaskAssignment,
     User,
 )
-from .permissions import DEFAULT_ROLE_PERMISSIONS, Permission, Role
+from .permissions import DEFAULT_ROLE_PERMISSIONS, Role
+from .scl90 import build_scl90
 from .services import build_ai_analysis, score_submission
 
 OPTIONS = [
@@ -136,14 +137,18 @@ def seed_data():
 
         students = []
         names = ["张伟", "王芳", "李娜", "刘强", "陈静", "杨洋", "赵敏", "周杰"]
+        genders = ["男", "女", "女", "男", "女", "男", "女", "男"]
         for i, name in enumerate(names):
             dept = class1 if i % 2 == 0 else class2
             s = User(
                 username=f"student{i+1}",
                 full_name=name,
+                student_no=f"2026{i + 1:04d}",
+                gender=genders[i],
+                birth_date=f"2009-{(i % 12) + 1:02d}-15",
                 hashed_password=hash_password("student123"),
                 role=Role.STUDENT.value,
-                permissions=[Permission.VIEW_SELF_REPORT.value],
+                permissions=DEFAULT_ROLE_PERMISSIONS[Role.STUDENT.value],
                 department_id=dept.id,
             )
             db.add(s)
@@ -157,6 +162,8 @@ def seed_data():
         scale2 = _build_scale(
             db, "抑郁焦虑筛查量表", "用于日常心理状态的快速筛查。"
         )
+        # 标准 SCL-90 量表
+        build_scl90(db, Scale, Question)
         db.flush()
 
         # ---------- Task targeting 高一年级 (batch by department) ----------

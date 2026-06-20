@@ -42,6 +42,9 @@ class DepartmentTree(DepartmentOut):
 class UserBase(BaseModel):
     username: str
     full_name: str = ""
+    student_no: str = ""
+    gender: str = ""
+    birth_date: str = ""
     role: str = "student"
     permissions: List[str] = []
     department_id: Optional[int] = None
@@ -53,11 +56,25 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
+    student_no: Optional[str] = None
+    gender: Optional[str] = None
+    birth_date: Optional[str] = None
     role: Optional[str] = None
     permissions: Optional[List[str]] = None
     department_id: Optional[int] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
+
+
+class RegisterRequest(BaseModel):
+    # 允许咨询师 / 学员用学号注册账号
+    student_no: str
+    password: str
+    full_name: str = ""
+    role: str = "student"  # student / counselor
+    gender: str = ""
+    birth_date: str = ""
+    department_id: Optional[int] = None
 
 
 class UserOut(UserBase):
@@ -123,9 +140,10 @@ class ScaleDetail(ScaleOut):
 class TaskCreate(BaseModel):
     title: str
     scale_id: int
-    target_type: str = "department"  # department / class / user
+    target_type: str = "department"  # department / class / user / mixed
     target_department_id: Optional[int] = None
-    target_user_ids: List[int] = []
+    target_department_ids: List[int] = []  # 多选部门/班级
+    target_user_ids: List[int] = []        # 单选/多选学员
     due_date: Optional[datetime] = None
 
 
@@ -137,6 +155,7 @@ class TaskOut(BaseModel):
     target_type: str
     target_department_id: Optional[int] = None
     target_department_name: Optional[str] = None
+    target_label: str = ""
     due_date: Optional[datetime] = None
     created_at: datetime
     total_count: int = 0
@@ -175,6 +194,9 @@ class ReportOut(BaseModel):
     id: int
     user_id: int
     user_name: str = ""
+    student_no: str = ""
+    gender: str = ""
+    birth_date: str = ""
     department_name: Optional[str] = None
     scale_id: int
     scale_name: str = ""
@@ -184,22 +206,68 @@ class ReportOut(BaseModel):
     total_score: float
     crisis_level: str
     ai_analysis: str = ""
+    counselor_advice: str = ""
+    counselor_id: Optional[int] = None
+    counselor_name: str = ""
     submitted_at: datetime
 
     class Config:
         from_attributes = True
 
 
+class ReportAnswerEdit(BaseModel):
+    question_id: int
+    choice_index: int
+
+
+class ReportUpdate(BaseModel):
+    counselor_advice: Optional[str] = None
+    counselor_id: Optional[int] = None
+    answers: Optional[List[ReportAnswerEdit]] = None
+
+
 class ReportSummary(BaseModel):
     id: int
     user_id: int
     user_name: str = ""
+    student_no: str = ""
     department_name: Optional[str] = None
     scale_name: str = ""
     report_type: str
     total_score: float
     crisis_level: str
+    counselor_name: str = ""
     submitted_at: datetime
+
+
+# ---------- Appointment ----------
+class AppointmentCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    slot: str  # am1 / am2 / pm1 / pm2
+    note: str = ""
+
+
+class AppointmentConfirm(BaseModel):
+    ids: List[int] = []
+    is_group: bool = False
+
+
+class AppointmentOut(BaseModel):
+    id: int
+    date: str
+    slot: str
+    slot_label: str = ""
+    student_id: int
+    student_name: str = ""
+    counselor_id: Optional[int] = None
+    counselor_name: str = ""
+    status: str
+    display_status: str = ""
+    is_group: bool = False
+    note: str = ""
+
+    class Config:
+        from_attributes = True
 
 
 DepartmentTree.model_rebuild()

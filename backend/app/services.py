@@ -1,11 +1,67 @@
 """Domain services: scoring, crisis evaluation, AI narrative, report visibility."""
 
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from .models import Department, Report, Scale, User
+from .models import Appointment, Department, Report, Scale, User
 from .permissions import Permission, Role
+
+# 咨询预约时间段：每天上午两段、下午两段
+SLOT_LABELS = {
+    "am1": "上午 08:00-09:00",
+    "am2": "上午 10:00-11:00",
+    "pm1": "下午 14:00-15:00",
+    "pm2": "下午 15:00-16:00",
+}
+SLOT_START = {"am1": (8, 0), "am2": (10, 0), "pm1": (14, 0), "pm2": (15, 0)}
+SLOT_END = {"am1": (9, 0), "am2": (11, 0), "pm1": (15, 0), "pm2": (16, 0)}
+
+
+def slot_start_dt(date_str: str, slot: str) -> Optional[datetime]:
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+    h, m = SLOT_START.get(slot, (0, 0))
+    return d.replace(hour=h, minute=m)
+
+
+def slot_end_dt(date_str: str, slot: str) -> Optional[datetime]:
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+    h, m = SLOT_END.get(slot, (0, 0))
+    return d.replace(hour=h, minute=m)
+
+
+def appointment_display_status(appt: Appointment) -> str:
+    """计算预约的展示状态（含超时未确认自动判为未成功）。"""
+    if appt.status == "cancelled":
+        return "预约未成功"
+    if appt.status == "confirmed":
+        return "团体预约成功" if appt.is_group else "预约成功"
+    # pending：超过咨询时间仍未确认 -> 预约未成功
+    end = slot_end_dt(appt.date, appt.slot)
+    if end and datetime.now() > end:
+        return "预约未成功"
+    return "预约中"
+
+
+def can_manage_user(db: Session, current: User, target: User) -> bool:
+    """管理员可管理所有人；咨询师可管理其所辖部门下的学员。"""
+    if current.role == Role.ADMIN.value or Permission.MANAGE_USERS.value in (
+        current.permissions or []
+    ):
+        return True
+    if current.role == Role.COUNSELOR.value and target.role == Role.STUDENT.value:
+        if current.department_id and target.department_id:
+            return target.department_id in descendant_department_ids(
+                db, current.department_id
+            )
+    return False
 
 CRISIS_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3}
 CRISIS_LABELS = {

@@ -7,17 +7,21 @@ import { useAuth } from "../auth";
 interface ReportSummary {
   id: number;
   user_name: string;
+  student_no?: string;
   department_name?: string;
   scale_name: string;
   report_type: string;
   total_score: number;
   crisis_level: string;
+  counselor_name?: string;
   submitted_at: string;
 }
 
 export default function Reports() {
   const nav = useNavigate();
-  const { user } = useAuth();
+  const { user, has } = useAuth();
+  const canEdit =
+    user?.role === "admin" || user?.role === "counselor" || has("edit_reports");
   const [rows, setRows] = useState<ReportSummary[]>([]);
   const [kw, setKw] = useState("");
 
@@ -54,8 +58,14 @@ export default function Reports() {
           dataSource={filtered}
           columns={[
             { title: "学员", dataIndex: "user_name" },
+            { title: "学号", dataIndex: "student_no", render: (v) => v || "-" },
             { title: "班级/部门", dataIndex: "department_name" },
             { title: "量表", dataIndex: "scale_name" },
+            {
+              title: "咨询师",
+              dataIndex: "counselor_name",
+              render: (v) => v || "-",
+            },
             {
               title: "类型",
               dataIndex: "report_type",
@@ -75,9 +85,19 @@ export default function Reports() {
             {
               title: "操作",
               render: (_, r) => (
-                <Button type="link" onClick={() => nav(`/reports/${r.id}`)}>
-                  查看
-                </Button>
+                <>
+                  <Button type="link" onClick={() => nav(`/reports/${r.id}`)}>
+                    查看
+                  </Button>
+                  {canEdit && (
+                    <Button
+                      type="link"
+                      onClick={() => nav(`/reports/${r.id}/edit`)}
+                    >
+                      修改
+                    </Button>
+                  )}
+                </>
               ),
             },
           ]}

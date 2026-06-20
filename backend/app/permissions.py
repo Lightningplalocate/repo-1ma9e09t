@@ -23,6 +23,9 @@ class Permission(str, Enum):
     MANAGE_USERS = "manage_users"            # 新增/改权限/挪动 人员
     MANAGE_DEPARTMENTS = "manage_departments"  # 管理部门 / 班级
     VIEW_CRISIS = "view_crisis"              # 查看危机预警及预警学员报告
+    EDIT_REPORTS = "edit_reports"            # 修改测评报告（咨询师建议/答案）
+    MANAGE_APPOINTMENT = "manage_appointment"  # 咨询师确认/取消预约
+    BOOK_APPOINTMENT = "book_appointment"    # 学员预约咨询
 
 
 # 权限的中文标签，供前端勾选界面展示
@@ -35,6 +38,9 @@ PERMISSION_LABELS = {
     Permission.MANAGE_USERS.value: "管理人员",
     Permission.MANAGE_DEPARTMENTS.value: "管理部门/班级",
     Permission.VIEW_CRISIS.value: "查看危机预警",
+    Permission.EDIT_REPORTS.value: "修改测评报告",
+    Permission.MANAGE_APPOINTMENT.value: "确认/管理咨询预约",
+    Permission.BOOK_APPOINTMENT.value: "预约咨询",
 }
 
 ROLE_LABELS = {
@@ -50,8 +56,11 @@ DEFAULT_ROLE_PERMISSIONS = {
         Permission.DISTRIBUTE_TASKS.value,
         Permission.ADD_SCALES.value,
         Permission.VIEW_CRISIS.value,
+        Permission.EDIT_REPORTS.value,
+        Permission.MANAGE_APPOINTMENT.value,
     ],
     Role.STUDENT.value: [
         Permission.VIEW_SELF_REPORT.value,
+        Permission.BOOK_APPOINTMENT.value,
     ],
 }

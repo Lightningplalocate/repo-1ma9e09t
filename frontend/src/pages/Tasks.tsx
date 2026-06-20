@@ -19,6 +19,7 @@ interface Task {
   scale_name: string;
   target_type: string;
   target_department_name?: string;
+  target_label?: string;
   total_count: number;
   completed_count: number;
   created_at: string;
@@ -36,6 +37,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [scales, setScales] = useState<any[]>([]);
   const [tree, setTree] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
 
@@ -45,18 +47,29 @@ export default function Tasks() {
     load();
     api.get("/scales").then((r) => setScales(r.data));
     api.get("/departments/tree").then((r) => setTree(buildTreeData(r.data)));
+    api
+      .get("/users", { params: { role: "student" } })
+      .then((r) => setStudents(r.data))
+      .catch(() => {});
   }, []);
 
   const submit = async () => {
     const v = await form.validateFields();
+    const deptIds: number[] = v.target_department_ids || [];
+    const userIds: number[] = v.target_user_ids || [];
+    if (deptIds.length === 0 && userIds.length === 0) {
+      message.error("请至少选择一个部门/班级或学员");
+      return;
+    }
     try {
       await api.post("/tasks", {
         title: v.title,
         scale_id: v.scale_id,
-        target_type: "department",
-        target_department_id: v.target_department_id,
+        target_type: "mixed",
+        target_department_ids: deptIds,
+        target_user_ids: userIds,
       });
-      message.success("任务已按班级/部门批量发放");
+      message.success("测评任务已发放");
       setOpen(false);
       form.resetFields();
       load();
@@ -84,9 +97,10 @@ export default function Tasks() {
             {
               title: "发放对象",
               render: (_, r) =>
-                r.target_department_name
+                r.target_label ||
+                (r.target_department_name
                   ? `${r.target_department_name}（按部门/班级）`
-                  : "指定人员",
+                  : "指定人员"),
             },
             {
               title: "完成进度",
@@ -129,14 +143,33 @@ export default function Tasks() {
             />
           </Form.Item>
           <Form.Item
-            name="target_department_id"
-            label="发放对象（以班级/部门为单位，向其下所有学员账号发放）"
-            rules={[{ required: true }]}
+            name="target_department_ids"
+            label="发放部门/班级（可单选或多选，向其下所有学员发放）"
           >
             <TreeSelect
               treeData={tree}
               treeDefaultExpandAll
-              placeholder="选择班级或部门"
+              multiple
+              allowClear
+              placeholder="可选择多个班级或部门"
+            />
+          </Form.Item>
+          <Form.Item
+            name="target_user_ids"
+            label="指定学员（可单选或多选，与部门可混合选择）"
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="可按姓名/学号搜索选择学员"
+              options={students.map((s) => ({
+                value: s.id,
+                label: `${s.full_name || s.username}${
+                  s.student_no ? `（${s.student_no}）` : ""
+                }${s.department_name ? ` - ${s.department_name}` : ""}`,
+              }))}
             />
           </Form.Item>
         </Form>

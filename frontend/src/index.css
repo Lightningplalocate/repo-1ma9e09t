@@ -18,3 +18,8 @@ body,
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
 }
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

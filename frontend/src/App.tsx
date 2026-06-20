@@ -8,6 +8,7 @@ import {
   TeamOutlined,
   UserOutlined,
   LogoutOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
@@ -15,11 +16,13 @@ import Login from "./pages/Login";
 import Overview from "./pages/Overview";
 import Reports from "./pages/Reports";
 import ReportDetail from "./pages/ReportDetail";
+import ReportEdit from "./pages/ReportEdit";
 import Crisis from "./pages/Crisis";
 import Tasks from "./pages/Tasks";
 import MyAssessments from "./pages/MyAssessments";
 import Scales from "./pages/Scales";
 import People from "./pages/People";
+import Appointments from "./pages/Appointments";
 
 const { Header, Sider, Content } = Layout;
 
@@ -56,12 +59,25 @@ function Shell() {
       label: "我的测评",
       show: user.role === "student",
     },
+    {
+      key: "/appointments",
+      icon: <CalendarOutlined />,
+      label: "咨询预约与排班系统",
+      show:
+        has("book_appointment") ||
+        has("manage_appointment") ||
+        user.role === "counselor" ||
+        user.role === "admin",
+    },
     { key: "/scales", icon: <BookOutlined />, label: "量表库", show: true },
     {
       key: "/people",
       icon: <TeamOutlined />,
-      label: "人员与班级",
-      show: has("manage_users") || has("manage_departments"),
+      label: "部门与人员档案管理",
+      show:
+        has("manage_users") ||
+        has("manage_departments") ||
+        user.role === "counselor",
     },
   ].filter((i) => i.show);
 
@@ -122,12 +138,12 @@ function Shell() {
           <Routes>
             <Route path="/overview" element={<Overview />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/reports/:id" element={<ReportDetail />} />
             <Route path="/crisis" element={<Crisis />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/my-assessments" element={<MyAssessments />} />
             <Route path="/scales" element={<Scales />} />
             <Route path="/people" element={<People />} />
+            <Route path="/appointments" element={<Appointments />} />
             <Route path="*" element={<Navigate to="/overview" />} />
           </Routes>
         </Content>
@@ -147,6 +163,15 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/overview" /> : <Login />} />
+      {/* 报告页：取消左侧模块栏，整体内容居中（独立于主框架） */}
+      <Route
+        path="/reports/:id"
+        element={user ? <ReportDetail /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/reports/:id/edit"
+        element={user ? <ReportEdit /> : <Navigate to="/login" />}
+      />
       <Route path="/*" element={<Shell />} />
     </Routes>
   );

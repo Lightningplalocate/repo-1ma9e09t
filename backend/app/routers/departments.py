@@ -29,6 +29,12 @@ def get_tree(db: Session = Depends(get_db), _: User = Depends(get_current_user))
     return _build_tree(db, None)
 
 
+@router.get("/public", response_model=list[DepartmentOut])
+def public_departments(db: Session = Depends(get_db)):
+    """供注册页选择所属部门/班级（无需登录）。"""
+    return db.query(Department).all()
+
+
 @router.get("", response_model=list[DepartmentOut])
 def list_departments(
     db: Session = Depends(get_db), _: User = Depends(get_current_user)

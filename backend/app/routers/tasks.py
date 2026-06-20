@@ -51,38 +51,70 @@ def create_task(
     if not scale:
         raise HTTPException(status_code=404, detail="量表不存在")
 
-    # 解析目标账号：按班级/部门为单位批量发放，或指定用户
-    target_user_ids: list[int] = []
-    if payload.target_type in ("department", "class"):
-        if not payload.target_department_id:
-            raise HTTPException(status_code=400, detail="请选择目标部门/班级")
-        dept_ids = descendant_department_ids(db, payload.target_department_id)
+    # 发放对象支持：单选/多选「部门或班级」，以及单选/多选「学员」
+    dept_ids_selected: list[int] = []
+    if payload.target_department_id:
+        dept_ids_selected.append(payload.target_department_id)
+    dept_ids_selected.extend(payload.target_department_ids or [])
+    dept_ids_selected = list(dict.fromkeys(dept_ids_selected))
+
+    target_user_ids: set[int] = set()
+    label_parts: list[str] = []
+
+    # 部门/班级 -> 解析其子树下所有学员
+    for did in dept_ids_selected:
+        dept = db.query(Department).filter(Department.id == did).first()
+        if not dept:
+            continue
+        label_parts.append(dept.name)
+        sub_ids = descendant_department_ids(db, did)
         users = (
             db.query(User)
             .filter(
-                User.department_id.in_(dept_ids),
+                User.department_id.in_(sub_ids),
                 User.role == Role.STUDENT.value,
                 User.is_active == True,
             )
             .all()
         )
-        target_user_ids = [u.id for u in users]
-    elif payload.target_type == "user":
-        target_user_ids = payload.target_user_ids
+        target_user_ids.update(u.id for u in users)
+
+    # 指定学员
+    if payload.target_user_ids:
+        named = (
+            db.query(User)
+            .filter(User.id.in_(payload.target_user_ids))
+            .all()
+        )
+        for u in named:
+            target_user_ids.add(u.id)
+        if named:
+            label_parts.append(
+                "指定学员：" + "、".join(u.full_name or u.username for u in named)
+            )
+
     if not target_user_ids:
         raise HTTPException(status_code=400, detail="目标范围内没有可发放的学员账号")
+
+    if dept_ids_selected and payload.target_user_ids:
+        target_type = "mixed"
+    elif payload.target_user_ids:
+        target_type = "user"
+    else:
+        target_type = payload.target_type or "department"
 
     task = AssessmentTask(
         title=payload.title,
         scale_id=payload.scale_id,
         created_by=current.id,
-        target_type=payload.target_type,
-        target_department_id=payload.target_department_id,
+        target_type=target_type,
+        target_department_id=dept_ids_selected[0] if dept_ids_selected else None,
+        target_label="；".join(label_parts),
         due_date=payload.due_date,
     )
     db.add(task)
     db.flush()
-    for uid in set(target_user_ids):
+    for uid in target_user_ids:
         db.add(TaskAssignment(task_id=task.id, user_id=uid))
     db.commit()
     db.refresh(task)

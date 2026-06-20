@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
 from .routers import (
+    appointments,
     auth_router,
     crisis,
     departments,
@@ -38,6 +39,7 @@ app.include_router(tasks.router)
 app.include_router(reports.router)
 app.include_router(crisis.router)
 app.include_router(overview.router)
+app.include_router(appointments.router)
 app.include_router(license_router.router)
 
 

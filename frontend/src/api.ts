@@ -26,11 +26,27 @@ export interface CurrentUser {
   id: number;
   username: string;
   full_name: string;
+  student_no?: string;
+  gender?: string;
+  birth_date?: string;
   role: string;
   permissions: string[];
   department_id?: number | null;
   department_name?: string | null;
   is_active: boolean;
+}
+
+// 触发后端文件（Word/Excel/模板）下载
+export async function downloadFile(url: string, filename: string) {
+  const res = await api.get(url, { responseType: "blob" });
+  const blobUrl = URL.createObjectURL(res.data as Blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
 }
 
 export interface MetaItem {
