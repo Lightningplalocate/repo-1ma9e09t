@@ -30,6 +30,19 @@ npm install
 npm run dev        # http://localhost:5173 （已配置 /api 代理到 8000）
 ```
 
+## 打包为 Windows 单文件 exe
+
+把前端打包为静态文件由后端托管，再用 PyInstaller 打成单个 exe，终端用户双击即可启动（无需安装 Python / Node）。
+
+```powershell
+# 仓库根目录，PowerShell 运行（需本机已装 Python 3.12 + Node 20）
+./build_exe.ps1
+```
+
+产物为 `backend/dist/PsychPlatform.exe`。双击运行：自动选取空闲端口启动本地服务并打开浏览器；首次运行会在 exe 同目录生成 `psych_platform.db` 并写入演示数据。关闭弹出的控制台窗口即停止程序。
+
+可选环境变量：`PORT` 指定端口，`NO_BROWSER=1` 不自动打开浏览器，`DATABASE_URL` 改用其他数据库。
+
 ## 演示账号
 | 账号 | 密码 | 角色 |
 |------|------|------|

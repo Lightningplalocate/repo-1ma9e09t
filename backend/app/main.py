@@ -1,5 +1,10 @@
-from fastapi import FastAPI
+import os
+import sys
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
 from .routers import (
@@ -45,3 +50,32 @@ def on_startup():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+def _static_dir() -> str:
+    # Built frontend (vite `dist`). When frozen, PyInstaller unpacks it to
+    # `_MEIPASS/webdist`; in dev it lives at <repo>/frontend/dist.
+    if getattr(sys, "frozen", False):
+        return os.path.join(sys._MEIPASS, "webdist")
+    here = os.path.dirname(os.path.abspath(__file__))
+    return os.path.normpath(os.path.join(here, "..", "..", "frontend", "dist"))
+
+
+_STATIC = _static_dir()
+if os.path.isdir(_STATIC):
+    _assets = os.path.join(_STATIC, "assets")
+    if os.path.isdir(_assets):
+        app.mount("/assets", StaticFiles(directory=_assets), name="assets")
+
+    @app.get("/")
+    def _index():
+        return FileResponse(os.path.join(_STATIC, "index.html"))
+
+    @app.get("/{full_path:path}")
+    def _spa(full_path: str):
+        if full_path.startswith("api"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        candidate = os.path.join(_STATIC, full_path)
+        if os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(_STATIC, "index.html"))

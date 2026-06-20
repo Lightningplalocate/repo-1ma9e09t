@@ -11,6 +11,11 @@ node_modules/
 dist/
 .vite/
 
+# PyInstaller build artifacts
+backend/build/
+backend/dist/
+*.spec
+
 # Env
 .env
 .env.local
