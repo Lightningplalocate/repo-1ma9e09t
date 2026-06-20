@@ -150,7 +150,7 @@ class AssignmentOut(BaseModel):
     id: int
     task_id: int
     task_title: str = ""
-    scale_id: int
+    scale_id: int = 0
     scale_name: str = ""
     status: str
     assigned_at: datetime
