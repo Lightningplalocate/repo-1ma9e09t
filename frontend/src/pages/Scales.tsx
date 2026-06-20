@@ -31,6 +31,10 @@ export default function Scales() {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<any | null>(null);
   const [form] = Form.useForm();
+  const watchedFactors = Form.useWatch("factors", form) || [];
+  const factorOptions = (watchedFactors as any[])
+    .filter((f) => f?.key)
+    .map((f) => ({ value: f.key, label: f.name }));
 
   const load = () => api.get("/scales").then((r) => setRows(r.data));
   useEffect(() => {
@@ -187,19 +191,13 @@ export default function Scales() {
                     <Form.Item
                       {...field}
                       name={[field.name, "factor"]}
-                      rules={[{ required: true, message: "所属因子" }]}
+                      rules={[{ required: true, message: "请选择所属因子" }]}
                     >
-                      <Form.Item noStyle shouldUpdate>
-                        {() => (
-                          <Select
-                            style={{ width: 140 }}
-                            placeholder="因子"
-                            options={(form.getFieldValue("factors") || [])
-                              .filter((f: any) => f?.key)
-                              .map((f: any) => ({ value: f.key, label: f.name }))}
-                          />
-                        )}
-                      </Form.Item>
+                      <Select
+                        style={{ width: 140 }}
+                        placeholder="因子"
+                        options={factorOptions}
+                      />
                     </Form.Item>
                     <MinusCircleOutlined onClick={() => remove(field.name)} />
                   </Space>
@@ -221,9 +219,7 @@ export default function Scales() {
                       <Select
                         style={{ width: 140 }}
                         placeholder="因子"
-                        options={(form.getFieldValue("factors") || [])
-                          .filter((f: any) => f?.key)
-                          .map((f: any) => ({ value: f.key, label: f.name }))}
+                        options={factorOptions}
                       />
                     </Form.Item>
                     <Form.Item {...field} name={[field.name, "threshold"]}>
